@@ -1,18 +1,17 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { useState } from "react";
+// import { useState } from "react";
 import { SIGNIN_URL, SIGNUP_URL } from "@/constant";
 import { useNavigate } from "react-router-dom";
 import { handleLogin, handleSignup } from "@/utilities";
+import { useAtom } from "jotai";
+import { logInDataAtom, signupDataAtom, userInfoAtom } from "@/stores/auth-slice";
 
 export default function Auth() {
-  const [loginData, setLoginData] = useState({ email: "", password: "" });
-  const [signupData, setSignupData] = useState({
-    email: "",
-    password: "",
-    confirmPassword: "",
-  });
+  const [loginData, setLoginData] = useAtom(logInDataAtom);
+  const [signupData, setSignupData] = useAtom(signupDataAtom);
+  const [,setUserInfo]=useAtom(userInfoAtom);
   const navigate = useNavigate();
   const handleLoginChange = (e) => {
     setLoginData({ ...loginData, [e.target.name]: e.target.value });
@@ -72,7 +71,7 @@ export default function Auth() {
                 />
                 <Button
                   onClick={() =>
-                    handleLogin(SIGNIN_URL, loginData,navigate)
+                    handleLogin(SIGNIN_URL, loginData,navigate,setUserInfo)
                   }
                 >
                   Login
@@ -104,7 +103,7 @@ export default function Auth() {
                   className="p-3 border rounded-lg w-full"
                 />
                 <Button
-                  onClick={() => handleSignup(SIGNUP_URL, signupData, navigate)}
+                  onClick={() => handleSignup(SIGNUP_URL, signupData, navigate,setUserInfo)}
                 >
                   Signup
                 </Button>
