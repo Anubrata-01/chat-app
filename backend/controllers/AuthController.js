@@ -97,10 +97,74 @@ export const getUserInfo = async (req, res) => {
 
         return res.status(200).json({
             message: "User information retrieved successfully",
-            user: { _id: user._id, email: user.email, profileSetup: user.profileSetup }
+            user: { _id: user._id, email: user.email, profileSetup: user.profileSetup,firstname:user.firstname,lastname:user.lastname,image:user.image,color:user.color }
         });
     } catch (error) {
         console.error(error);
         return res.status(500).send("Internal server error");
     }
 };
+
+export const saveUserDetails = async (req, res) => {
+    try {
+      const { _id } = req.user;
+      const { firstname, lastname, color } = req.body;
+  
+      if (!firstname || !lastname) {
+        return res.status(400).send("These fields are required");
+      }
+  
+      const user = await User.findByIdAndUpdate(
+        _id,
+        {
+          firstname,
+          lastname,
+          color,
+          profileSetup: true,
+        },
+        { new: true }
+      );
+  
+      return res.status(200).json({
+        message: "User information updated successfully",
+        user: {
+          _id: user._id,
+          email: user.email,
+          profileSetup: user.profileSetup,
+          firstname: user.firstname,
+          lastname: user.lastname,
+          image: user.image,
+          color: user.color,
+        },
+      });
+    } catch (error) {
+      console.log(error);
+      return res.status(500).json({
+        message: "Internal server error",
+      });
+    }
+  };
+  
+
+export const uploadProfileImage=async (req, res) => {
+    try {
+      // req.file contains the uploaded file info
+      // req.body contains the text fields
+  
+      const updatedUser = await User.findByIdAndUpdate(
+        req.user._id, 
+        {
+          firstname: req.body.firstname,
+          lastname: req.body.lastname,
+          color: req.body.color,
+          image: req.file ? `/uploads/${req.file.filename}` : undefined
+        },
+        { new: true }
+      );
+  
+      res.json({ user: updatedUser });
+    } catch (error) {
+      res.status(500).json({ message: 'Error updating user', error });
+    }
+  };
+  
