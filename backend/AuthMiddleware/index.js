@@ -1,6 +1,6 @@
 import User from "../models/UserModel.js";
 import jwt from "jsonwebtoken"
-const authenticate = async (req, res, next) => {
+ const authenticate = async (req, res, next) => {
   try {
     const token = req.cookies.jwt;
     if (!token) {
@@ -26,4 +26,9 @@ const authenticate = async (req, res, next) => {
 };
 
 export default authenticate;
+
+
+
+
+
 

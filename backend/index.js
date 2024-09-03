@@ -22,7 +22,7 @@ app.use(express.json());
 app.use(cookieParser()); 
 
 app.use("/api/auth", router);
-
+app.use('/uploads', express.static('uploads'));
 const server = app.listen(PORT, () => {
     console.log(`The server is running on port ${PORT}`);
 });
