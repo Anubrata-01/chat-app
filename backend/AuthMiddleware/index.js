@@ -8,11 +8,13 @@ import jwt from "jsonwebtoken"
     }
 
     const decoded =jwt.verify(token, process.env.JWT_KEY);
+    console.log(decoded)
     if (!decoded) {
       return res.status(401).json({ error: 'Invalid token.' });
     }
 
     const user = await User.findById(decoded.userId).select('-password');
+    console.log(user)
     if (!user) {
       return res.status(401).json({ error: 'User not found.' });
     }
