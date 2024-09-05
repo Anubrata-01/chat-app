@@ -2,7 +2,7 @@ import User from "../models/UserModel.js";
 import jwt from "jsonwebtoken"
  const authenticate = async (req, res, next) => {
   try {
-    const token = req.cookies.jwt;
+    const token = req.cookies.jwt || req.cookies.refreshToken;
     if (!token) {
       return res.status(401).json({ error: 'Access denied. No token provided.' });
     }

@@ -6,5 +6,7 @@ export const SIGNUP_URL=`${AUTH_ROUTES}/signup`
 export const SIGNIN_URL=`${AUTH_ROUTES}/signin`
 export const GETUSERDATA_URL=`${AUTH_ROUTES}/getuserinfo`
 export const UPDATEUSER_URL=`${AUTH_ROUTES}/updateuser-info`
+export const UPLOAD_IMAGE_URL=`${AUTH_ROUTES}/upload-profile-image`
+
 
 

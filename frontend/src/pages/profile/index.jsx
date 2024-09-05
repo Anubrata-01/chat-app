@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { UPDATEUSER_URL } from "@/constant";
+import { UPDATEUSER_URL, UPLOAD_IMAGE_URL } from "@/constant";
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { userInfoAtom } from "@/stores/auth-slice";
@@ -34,6 +34,59 @@ const Profile = () => {
     const { name, value } = e.target;
     setProfileData({ ...profileData, [name]: value });
   };
+ 
+  const handleImageChange = async (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      try {
+        const formData = new FormData();
+        formData.append('image', file);
+  
+        const response = await fetch(UPLOAD_IMAGE_URL, {
+          method: 'POST',
+          body: formData,
+          credentials: 'include',
+        });
+  
+        if (response.ok) {
+          const data = await response.json();
+          console.log('Upload Response Data:', data);
+  
+          // Check if data.path is correct
+          if (data?.path) {
+            setProfileData(prev => ({
+              ...prev,
+              image: data.path,
+              imagePreview: URL.createObjectURL(file)
+            }));
+            console.log('Profile Data After Image Upload:', {
+              ...profileData,
+              image: data.path
+            });
+          } else {
+            console.error('Invalid response format:', data);
+            toast.error('Failed to upload image. Path is missing.');
+          }
+        } else {
+          toast.error('Failed to upload image. Please try again.');
+        }
+      } catch (error) {
+        console.error('Upload Error:', error);
+        toast.error('An error occurred while uploading the image.');
+      }
+  
+      // Preview the image
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setProfileData(prev => ({
+          ...prev,
+          imagePreview: reader.result
+        }));
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
 
   const handleSave = async () => {
     try {
@@ -47,13 +100,15 @@ const Profile = () => {
           firstname: profileData.firstname,
           lastname: profileData.lastname,
           color: profileData.color,
-          // assuming you want to store the image data as well
+          image: profileData.image,
         }),
       });
 
       if (response.ok) {
         const data = await response.json();
+        
         setUserInfo(data.user);
+        console.log(userInfo)
         toast.success('Profile updated successfully!');
         navigate("/chat");
       } else {
@@ -65,17 +120,9 @@ const Profile = () => {
     }
   };
 
-  const handleImageChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setProfileData({ ...profileData, image: reader.result });
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
+ 
+  
+  
   return (
     <div className="min-h-screen bg-gradient-to-b from-green-400 to-blue-500 text-white flex items-center justify-center p-4">
       <ToastContainer />
@@ -87,7 +134,9 @@ const Profile = () => {
               borderStyle: "solid",
             }}>
             {profileData.image ? (
-              <AvatarImage src={profileData.image} />
+              
+            <AvatarImage src={profileData.imagePreview || profileData.image} />
+              
             ) : (
               <AvatarFallback
                 style={{ color: profileData.color, fontSize: "2rem" }}
