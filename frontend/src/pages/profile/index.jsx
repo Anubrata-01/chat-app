@@ -202,12 +202,6 @@ const Profile = () => {
               Save
             </Button>
 
-            <Button
-              onClick={() => navigate("/edit-profile")}
-              className="bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-full transition-colors"
-            >
-              Edit 
-            </Button>
           </div>
         </div>
       </div>

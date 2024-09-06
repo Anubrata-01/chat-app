@@ -1,23 +1,53 @@
+/* eslint-disable no-unused-vars */
 /* eslint-disable react/prop-types */
+// import { GETUSERDATA_URL } from "@/constant";
+import { LOGOUT_URL } from "@/constant";
+import { userInfoAtom } from "@/stores/auth-slice";
+import { fetchUserdata, fetchUserInfo } from "@/utilities";
+import { useAtom } from "jotai";
+import { useQuery } from "react-query";
+import { useNavigate } from "react-router-dom";
+
+
+
 const ContactsContainer = ({ onContactClick }) => {
-  const contacts = [
-    {
-      id: 1,
-      name: "John Doe",
-      lastMessage: "Hey, how are you?",
-      avatar: "/path/to/avatar1.jpg",
-    },
-    {
-      id: 2,
-      name: "Jane Smith",
-      lastMessage: "See you tomorrow!",
-      avatar: "/path/to/avatar2.jpg",
-    },
-  ];
+  const[userInfo,setUserInfo]=useAtom(userInfoAtom)
+  const { data, isLoading, error } = useQuery("userInfo", fetchUserInfo);
+  const { data:users, isLoading:usersLoading, error:usersError } = useQuery("users", fetchUserdata);
+  const navigate=useNavigate()
+  console.log(users)
+  const backendURL = "http://localhost:8747"; 
+  const userImagePath = data?.user?.image ? `${backendURL}${data.user.image}` : "/default-avatar.png";
+ const handleLogout=async()=>{
+  try{
+      const response=await fetch(LOGOUT_URL,{
+        method:"POST",
+        credentials:"include"
+      })
+      if(!response.ok){
+        console.log("Something is probelm in your backend")
+      }
+      setUserInfo([])
+      navigate("/auth")
+  }catch(error){
+    console.log(error)
+  }
+ }
+
+  if (isLoading || usersLoading) {
+    return <div>Loading...</div>;
+  }
+
+  if (error || usersError) {
+    return <div>Error: {error.message}</div>;
+  }
 
   return (
-    <div className="relative  md:w-[25vw] lg:w-[25vw]  bg-[#1b1c24] border-r-2 border-[#2f3b22] p-4">
-      <div className="text-xl font-bold text-white mb-4 pr-10">Chat</div>
+    <div className="relative md:w-[25vw] lg:w-[25vw] bg-[#1b1c24] border-r-2 border-[#2f3b22] p-4">
+      <div className="text-xl font-bold text-white mb-4 pr-10 flex gap-3">
+            <p>Chat</p>
+            <button className=" text-xs p-2 text-red-400" onClick={handleLogout}>Logout</button>
+      </div>
       <div className="my-3">
         <div className="flex items-center justify-between pr-10">
           <Title text={"DIRECT MESSAGE"} />
@@ -28,28 +58,41 @@ const ContactsContainer = ({ onContactClick }) => {
           <Title text={"CHANNELS"} />
         </div>
       </div>
-      <div className="space-y-4">
-        {contacts.map((contact) => (
+      <div className="space-y-4 h-[60vh] overflow-y-scroll scrollbar-hide">
+        { users && users.map((contact) => (
           <div
             key={contact.id}
             className="flex items-center space-x-1 p-2 hover:bg-[#2f3b22] rounded-md cursor-pointer transition-colors"
             onClick={() => onContactClick(contact)}
           >
             <img
-              src={contact.avatar}
-              alt={`${contact.name} avatar`}
+              src={`${backendURL}${contact.image}`}
+              alt={`${contact?.firstname || "First"}`}
               className="w-10 h-10 rounded-full object-cover"
             />
             <div className="flex-1">
-              <h4 className="text-sm font-semibold text-white">
-                {contact.name}
-              </h4>
-              <p className="text-xs text-gray-400 truncate">
-                {contact.lastMessage}
-              </p>
+              <h4 className="text-sm font-semibold text-white">{`${contact?.firstname || "First"} ${contact?.lastname || "Last"}`}</h4>
+              <p className="text-xs text-gray-400 truncate">Hello</p>
             </div>
           </div>
         ))}
+      </div>
+
+      {/* User Info Section */}
+      <div className="mt-6 flex items-center space-x-3">
+        <img
+          src={userImagePath || "/default-avatar.png"}
+          alt={`${data?.user?.firstname || "User"}'s avatar`}
+          className="w-10 h-10 rounded-full object-cover"
+        />
+        <div className="text-white">
+          <span className="block text-sm font-semibold">
+            {`${data?.user?.firstname || "First"} ${data?.user?.lastname || "Last"}`}
+          </span>
+          <span className="block text-xs text-gray-400">
+            {data?.user?.email || "Email not available"}
+          </span>
+        </div>
       </div>
     </div>
   );

@@ -10,7 +10,7 @@ const ChatHeader = ({ closeChat, contact, isMobileView }) => {
             <FaArrowLeft />
           </button>
         )}
-        <h2 className="text-lg font-bold text-white">{contact.name}</h2>
+        <h2 className="text-lg font-bold text-white">{`${contact?.firstname || "First"} ${contact?.lastname || "Last"}`}</h2>
         {!isMobileView && (
           <button className="text-white text-xl" onClick={closeChat}>
             <FaTimes />

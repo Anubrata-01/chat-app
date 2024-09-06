@@ -1,13 +1,16 @@
 /* eslint-disable react/prop-types */
-import './App.css';
-import { createBrowserRouter, Navigate, RouterProvider } from 'react-router-dom';
-import Auth from './pages/auth';
-import Chat from './pages/chat';
-import Profile from './pages/profile';
-import { useAtom, useAtomValue } from 'jotai';
-import { userInfoAtom } from './stores/auth-slice';
-import { useState, useEffect } from 'react';
-import { GETUSERDATA_URL } from './constant';
+import "./App.css";
+import { createBrowserRouter, Navigate, RouterProvider } from "react-router-dom";
+import Auth from "./pages/auth";
+import Chat from "./pages/chat";
+import Profile from "./pages/profile";
+import { useAtom, useAtomValue } from "jotai";
+import { userInfoAtom } from "./stores/auth-slice";
+import { useState, useEffect } from "react";
+import { GETUSERDATA_URL } from "./constant";
+import { QueryClient, QueryClientProvider } from "react-query";
+
+const queryClient = new QueryClient();
 
 const PrivateRoute = ({ children }) => {
   const userInfo = useAtomValue(userInfoAtom);
@@ -30,23 +33,19 @@ function App() {
       try {
         const response = await fetch(GETUSERDATA_URL, {
           method: 'GET',
-          credentials: 'include', // Include cookies with the request
+          credentials: 'include',
         });
-    
+
         if (response.ok) {
           const data = await response.json();
-          console.log('User Data:', data);
           setUserInfo(data);
-        } else {
-          console.error('Failed to fetch user data. Status:', response.status);
         }
       } catch (error) {
-        console.error('Fetch Error:', error.message);
+        console.error(error.message);
       } finally {
         setLoading(false);
       }
     };
-    
 
     if (!userInfo) {
       getUserInfoData();
@@ -61,7 +60,7 @@ function App() {
 
   const router = createBrowserRouter([
     {
-      path: '/auth',
+      path: "/auth",
       element: (
         <AuthRoute>
           <Auth />
@@ -69,7 +68,7 @@ function App() {
       ),
     },
     {
-      path: '/chat',
+      path: "/chat",
       element: (
         <PrivateRoute>
           <Chat />
@@ -77,22 +76,25 @@ function App() {
       ),
     },
     {
-      path: '/profile',
+      path: "/profile",
       element: (
         <PrivateRoute>
-          
           <Profile />
-          
         </PrivateRoute>
       ),
     },
     {
-      path: '*',
+      path: "*",
       element: <Navigate to="/auth" />,
     },
   ]);
 
-  return <RouterProvider router={router} />;
+  return (
+    <QueryClientProvider client={queryClient}>
+      <RouterProvider router={router} />
+    </QueryClientProvider>
+  );
 }
 
 export default App;
+

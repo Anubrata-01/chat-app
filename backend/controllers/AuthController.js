@@ -3,6 +3,7 @@ import bcrypt from "bcrypt"
 import jwt from "jsonwebtoken";
 import multer from "multer";
 import path from "path"
+import mongoose from 'mongoose';
 const maxAccessTokenTime = 15 * 60;
 const maxRefreshTokenTime = 7 * 24 * 60 * 60; 
 const createAccessToken = (email, userId) => jwt.sign(
@@ -40,12 +41,10 @@ export const signup = async (req, res, next) => {
     // Hash the password
     const hashedPassword = await bcrypt.hash(password, 10);
     const user = await User.create({ email, password: hashedPassword });
-
-    // Create access and refresh tokens
+    console.log("Original password:", password);
+    console.log("Hashed password:", hashedPassword)
     const accessToken = createAccessToken(user.email, user._id);
     const refreshToken = createRefreshToken(user.email, user._id);
-
-    // Set cookies for access and refresh tokens
     res.cookie('jwt', accessToken, {
       secure: true,
       httpOnly: true,
@@ -77,57 +76,57 @@ export const signup = async (req, res, next) => {
 
 export const signin = async (req, res) => {
   try {
+    const db = mongoose.connection.db;
+    const collection = db.collection('users');
     const { email, password } = req.body;
 
-    if (!email || !password) {
-      return res.status(400).send("Email and Password are required!");
-    }
-
-    // Check if user exists
-    const user = await User.findOne({ email });
+    // Find the user by email
+    const user = await collection.findOne({ email });
     if (!user) {
-      return res.status(404).send("User not found!");
+      console.log('User not found');
+      return res.status(401).json({ error: 'Invalid credentials' });
     }
 
-    // Compare hashed passwords
-    const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) {
-      return res.status(400).send("Invalid password!");
+    console.log('User found:', user.email);
+    console.log('Stored password hash:', user.password);
+
+    // Compare the provided password with the stored hashed password
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+    if (!isPasswordValid) {
+      console.log('Invalid password');
+      return res.status(401).json({ error: 'Invalid credentials' });
     }
 
-    // Create access and refresh tokens
+    console.log('Password is valid');
+
+    // Generate access and refresh tokens
     const accessToken = createAccessToken(user.email, user._id);
     const refreshToken = createRefreshToken(user.email, user._id);
 
-    // Set cookies for tokens
+    // Set the JWT token in cookies
     res.cookie('jwt', accessToken, {
       secure: true,
       httpOnly: true,
       sameSite: 'None',
-      maxAge: maxAccessTokenTime * 1000,  // Access token
+      maxAge: maxAccessTokenTime * 1000,  // 15-minute expiration
     });
 
+    // Set the refresh token in cookies
     res.cookie('refreshToken', refreshToken, {
       secure: true,
       httpOnly: true,
       sameSite: 'None',
-      maxAge: maxRefreshTokenTime * 1000,  // Refresh token
+      maxAge: maxRefreshTokenTime * 1000,  // 7-day expiration
     });
 
-    return res.status(200).json({
-      message: "Sign in successful",
-      user: {
-        _id: user._id,
-        email: user.email,
-        profileSetup: user.profileSetup,
-      }
-    });
+    // Send the response back to the client
+    res.status(200).json({ message: 'Login successful', accessToken, refreshToken });
+
   } catch (error) {
-    console.error(error);
-    return res.status(500).send("Internal server error");
+    console.error('Database check error:', error);
+    res.status(500).json({ error: 'Internal server error' });
   }
 };
-
 
 
 export const refreshAccessToken = async (req, res) => {
@@ -179,6 +178,20 @@ export const getUserInfo = async (req, res) => {
         return res.status(500).send("Internal server error");
     }
 };
+
+export const getAllUsers=async(req,res)=>{
+  try{
+    const users=await User.find();
+    if(!users){
+      res.status(404).send("users are not found!")
+    }
+    console.log(users)
+    return res.status(200).json(users)
+
+  }catch(error){
+    console.log("problem in fetch allusers from database",error)
+  }
+}
 
 export const saveUserDetails = async (req, res) => {
     try {
@@ -244,7 +257,7 @@ export const saveUserDetails = async (req, res) => {
       }
       cb(null, true);
     }
-  }).single('image'); // 'image' is the field name in the form data
+  }).single('image');
   
   export const uploadProfileImage = async (req, res) => {
     upload(req, res, function (err) {
@@ -273,4 +286,19 @@ export const saveUserDetails = async (req, res) => {
       });
     });
   };
+  
+
+
+  export const logout = async (req, res, next) => {
+    try {
+      res.clearCookie('jwt', { path: '/', secure: true, sameSite: 'None' });
+      res.clearCookie('refreshToken', { path: '/', secure: true, sameSite: 'None' });
+      return res.status(200).send("Logout successful");
+    } catch (error) {
+      console.error({ error });
+      return res.status(500).send("Internal server error");
+    }
+  };
+  
+
   
