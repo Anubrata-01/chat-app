@@ -6,22 +6,32 @@ import path from "path"
 import mongoose from 'mongoose';
 const maxAccessTokenTime = 15 * 60;
 const maxRefreshTokenTime = 7 * 24 * 60 * 60; 
-const createAccessToken = (email, userId) => jwt.sign(
-  { email, userId },
-  process.env.JWT_KEY,
-  { expiresIn: maxAccessTokenTime } 
-);
-
-const createRefreshToken = (email, userId) => jwt.sign(
-  { email, userId },
-  process.env.REFRESH_TOKEN_KEY,  
-  { expiresIn: maxRefreshTokenTime }  
-);
-const cookieOptions = {
-   
-  secure: true,
-  sameSite: 'None',
+ const createAccessToken = (email, userId) => {
+  try {
+    return jwt.sign(
+      { email, userId },
+      process.env.JWT_KEY,
+      { expiresIn: '15m' }
+    );
+  } catch (error) {
+    console.error('Error creating access token:', error);
+    throw new Error('Token creation failed');
+  }
 };
+
+ const createRefreshToken = (email, userId) => {
+  try {
+    return jwt.sign(
+      { email, userId },
+      process.env.REFRESH_TOKEN_KEY,
+      { expiresIn: '7d' }
+    );
+  } catch (error) {
+    console.error('Error creating refresh token:', error);
+    throw new Error('Token creation failed');
+  }
+};
+
 export const signup = async (req, res, next) => {
   try {
     const { email, password } = req.body;
@@ -39,22 +49,22 @@ export const signup = async (req, res, next) => {
     }
 
     // Hash the password
-    const hashedPassword = await bcrypt.hash(password, 10);
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
     const user = await User.create({ email, password: hashedPassword });
+    await user.save();
     console.log("Original password:", password);
     console.log("Hashed password:", hashedPassword)
     const accessToken = createAccessToken(user.email, user._id);
     const refreshToken = createRefreshToken(user.email, user._id);
     res.cookie('jwt', accessToken, {
       secure: true,
-      httpOnly: true,
       sameSite: 'None',
       maxAge: maxAccessTokenTime * 1000,  // 15-minute expiration
     });
 
     res.cookie('refreshToken', refreshToken, {
       secure: true,
-      httpOnly: true,
       sameSite: 'None',
       maxAge: maxRefreshTokenTime * 1000,  // 7-day expiration
     });
@@ -64,6 +74,7 @@ export const signup = async (req, res, next) => {
       user: {
         _id: user._id,
         email: user.email,
+        password:user.password,
         profileSetup: user.profileSetup,
       }
     });
@@ -76,37 +87,34 @@ export const signup = async (req, res, next) => {
 
 export const signin = async (req, res) => {
   try {
-    const db = mongoose.connection.db;
-    const collection = db.collection('users');
+  
     const { email, password } = req.body;
-
-    // Find the user by email
-    const user = await collection.findOne({ email });
+    const normalizedEmail = email.toLowerCase();
+    const user = await User.findOne({ email: normalizedEmail });
     if (!user) {
-      console.log('User not found');
-      return res.status(401).json({ error: 'Invalid credentials' });
+      console.log('User not found with email:', normalizedEmail);
+      return res.status(401).json({ error: 'Invalid email or password' });
     }
 
     console.log('User found:', user.email);
-    console.log('Stored password hash:', user.password);
 
     // Compare the provided password with the stored hashed password
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
-      console.log('Invalid password');
-      return res.status(401).json({ error: 'Invalid credentials' });
+      console.log('Invalid password for user:', user.email);
+      return res.status(401).json({ error: 'Invalid email or password' });
     }
 
-    console.log('Password is valid');
+    console.log('Password is valid for user:', user.email);
 
     // Generate access and refresh tokens
     const accessToken = createAccessToken(user.email, user._id);
     const refreshToken = createRefreshToken(user.email, user._id);
 
-    // Set the JWT token in cookies
+    // Set the JWT access token in cookies
     res.cookie('jwt', accessToken, {
       secure: true,
-      httpOnly: true,
+     
       sameSite: 'None',
       maxAge: maxAccessTokenTime * 1000,  // 15-minute expiration
     });
@@ -114,7 +122,7 @@ export const signin = async (req, res) => {
     // Set the refresh token in cookies
     res.cookie('refreshToken', refreshToken, {
       secure: true,
-      httpOnly: true,
+      
       sameSite: 'None',
       maxAge: maxRefreshTokenTime * 1000,  // 7-day expiration
     });
@@ -123,7 +131,7 @@ export const signin = async (req, res) => {
     res.status(200).json({ message: 'Login successful', accessToken, refreshToken });
 
   } catch (error) {
-    console.error('Database check error:', error);
+    console.error('Error during signin:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 };
@@ -131,32 +139,46 @@ export const signin = async (req, res) => {
 
 export const refreshAccessToken = async (req, res) => {
   try {
-    const refreshToken = req.cookies.refreshToken;  
+    const refreshToken = req.cookies.refreshToken;
+    
     if (!refreshToken) {
+      console.error('No refresh token provided');
       return res.status(403).json({ error: 'Access denied. No refresh token provided.' });
     }
-    const decoded = jwt.verify(refreshToken, process.env.REFRESH_TOKEN_KEY);
 
-    if (!decoded) {
+    // Verify the refresh token
+    let decoded;
+    try {
+      decoded = jwt.verify(refreshToken, process.env.REFRESH_TOKEN_KEY);
+    } catch (err) {
+      console.error('Invalid refresh token:', err);
       return res.status(403).json({ error: 'Invalid refresh token.' });
     }
+
+    // Check if the user exists
     const user = await User.findById(decoded.userId);
     if (!user) {
+      console.error('User not found for refresh token:', decoded.userId);
       return res.status(403).json({ error: 'User not found.' });
     }
+
+    console.log('User found for token refresh:', user.email);
+
+    // Generate a new access token
     const newAccessToken = createAccessToken(user.email, user._id);
 
-    // Send the new access token in cookies
+    // Set the new JWT access token in cookies
     res.cookie('jwt', newAccessToken, {
       secure: true,
       httpOnly: true,
       sameSite: 'None',
-      maxAge: maxAccessTokenTime * 1000,  
+      maxAge: maxAccessTokenTime * 1000,  // 15-minute expiration
     });
 
     return res.status(200).json({ message: 'New access token generated.' });
+
   } catch (error) {
-    console.error('Refresh token error:', error);
+    console.error('Error during token refresh:', error);
     return res.status(500).json({ error: 'Internal server error' });
   }
 };
@@ -301,4 +323,38 @@ export const saveUserDetails = async (req, res) => {
   };
   
 
+
+  // serachcontacts route
+
+  export const searchContacts = async (req, res, next) => {
+    try {
+      const { searchText } = req.body;
+
+      if (searchText === undefined || searchText === null || searchText.trim() === '') {
+        return res.status(400).json({ message: "Search text is required!" });
+      }
+  
+      // Search for contacts that match the searchText, excluding the current user
+      const contacts = await User.find({
+        $and: [
+          { _id: { $ne: req.userId } },  // Exclude the current user
+          { $or: [ 
+              { firstname: { $regex: searchText, $options: 'i' } },  
+              {lastname:{$regex: searchText, $options: 'i' }},
+              { email: { $regex: searchText, $options: 'i' } }      
+            ]
+          }
+        ]
+      });
+  
+      return res.status(200).json({
+        message: "Contacts searched successfully",
+        contacts
+      });
+  
+    } catch (error) {
+      console.error(error);
+      return res.status(500).json({ message: "Error in searchContacts" });
+    }
+  };
   

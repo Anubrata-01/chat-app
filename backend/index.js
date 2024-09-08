@@ -4,6 +4,7 @@ import mongoose from "mongoose";
 import cors from "cors";
 import dotenv from "dotenv";
 import router from "./routes/Authroutes.js"; 
+import setUpsocket from "./socket.js";
 
 dotenv.config();
 
@@ -26,7 +27,7 @@ app.use('/uploads', express.static('uploads'));
 const server = app.listen(PORT, () => {
     console.log(`The server is running on port ${PORT}`);
 });
-
+setUpsocket(server)
 mongoose.connect(databaseUrl)
     .then(() => console.log("chatApp database is connected"))
     .catch((err) => console.log(err.message));

@@ -1,4 +1,4 @@
-import { GETALLUSER_URL, GETUSERDATA_URL } from "@/constant";
+import { GETALLUSER_URL, GETUSERDATA_URL, REFRESH_TOKEN_URL, SEARCH_CONTACTS_URL } from "@/constant";
 export const handleSignup = async (
   SIGNUP_URL,
   signupData,
@@ -63,7 +63,7 @@ export const handleLogin = async (
       navigate("/profile");
     } else if (response.status === 401) {
       // Token expired or invalid, try to refresh
-      await refreshAccessToken(navigate, setUserInfo);
+     await refreshAccessToken(navigate, setUserInfo);
     } else {
       console.error("Login failed", data);
     }
@@ -75,7 +75,7 @@ export const handleLogin = async (
 
 const refreshAccessToken = async (navigate, setUserInfo) => {
   try {
-    const response = await fetch("/api/auth/refresh-token", {
+    const response = await fetch(REFRESH_TOKEN_URL, {
       method: "POST",
       credentials: "include", // Send cookies
     });
@@ -123,5 +123,34 @@ export const fetchUserdata = async () => {
     return data;
   } catch (error) {
     console.log(error);
+  }
+};
+
+
+
+export const handleSearchContacts = async (searchText,setSearchContacts) => {
+  try {
+    if (searchText.length > 0) {
+      const response = await fetch(SEARCH_CONTACTS_URL, {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ searchText }), 
+      });
+      
+      if (response.status === 200) {
+        const data = await response.json();
+        console.log(data)
+        setSearchContacts(data.contacts); 
+      } else {
+        console.log("Error: ", response.status);
+      }
+    } else {
+      setSearchContacts([]); 
+    }
+  } catch (error) {
+    console.log("Error:", error);
   }
 };

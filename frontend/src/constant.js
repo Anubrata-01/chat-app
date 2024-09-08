@@ -9,6 +9,10 @@ export const UPDATEUSER_URL=`${AUTH_ROUTES}/updateuser-info`
 export const UPLOAD_IMAGE_URL=`${AUTH_ROUTES}/upload-profile-image`
 export const GETALLUSER_URL=`${AUTH_ROUTES}/all-users`
 export const LOGOUT_URL=`${AUTH_ROUTES}/logout`
+export const SEARCH_CONTACTS_URL=`${AUTH_ROUTES}/searchcontacts`
+export const REFRESH_TOKEN_URL=`${AUTH_ROUTES}/refresh-token`
+
+
 
 
 
