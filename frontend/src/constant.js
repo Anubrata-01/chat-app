@@ -11,6 +11,9 @@ export const GETALLUSER_URL=`${AUTH_ROUTES}/all-users`
 export const LOGOUT_URL=`${AUTH_ROUTES}/logout`
 export const SEARCH_CONTACTS_URL=`${AUTH_ROUTES}/searchcontacts`
 export const REFRESH_TOKEN_URL=`${AUTH_ROUTES}/refresh-token`
+export const SENDMESSAGE_URL=`${AUTH_ROUTES}/sendmessage`
+export const GETMESSAGE_URL=`${AUTH_ROUTES}/getmessage`
+
 
 
 

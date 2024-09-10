@@ -4,6 +4,7 @@ import jwt from "jsonwebtoken";
 import multer from "multer";
 import path from "path"
 import mongoose from 'mongoose';
+import MessageModel from "../models/MessagesModel.js";
 const maxAccessTokenTime = 15 * 60;
 const maxRefreshTokenTime = 7 * 24 * 60 * 60; 
  const createAccessToken = (email, userId) => {
@@ -92,11 +93,9 @@ export const signin = async (req, res) => {
     const normalizedEmail = email.toLowerCase();
     const user = await User.findOne({ email: normalizedEmail });
     if (!user) {
-      console.log('User not found with email:', normalizedEmail);
       return res.status(401).json({ error: 'Invalid email or password' });
     }
 
-    console.log('User found:', user.email);
 
     // Compare the provided password with the stored hashed password
     const isPasswordValid = await bcrypt.compare(password, user.password);
@@ -104,30 +103,23 @@ export const signin = async (req, res) => {
       console.log('Invalid password for user:', user.email);
       return res.status(401).json({ error: 'Invalid email or password' });
     }
-
-    console.log('Password is valid for user:', user.email);
-
-    // Generate access and refresh tokens
+    
     const accessToken = createAccessToken(user.email, user._id);
     const refreshToken = createRefreshToken(user.email, user._id);
-
-    // Set the JWT access token in cookies
     res.cookie('jwt', accessToken, {
       secure: true,
      
       sameSite: 'None',
-      maxAge: maxAccessTokenTime * 1000,  // 15-minute expiration
+      maxAge: maxAccessTokenTime * 1000,  
     });
 
-    // Set the refresh token in cookies
     res.cookie('refreshToken', refreshToken, {
       secure: true,
       
       sameSite: 'None',
-      maxAge: maxRefreshTokenTime * 1000,  // 7-day expiration
+      maxAge: maxRefreshTokenTime * 1000,  
     });
 
-    // Send the response back to the client
     res.status(200).json({ message: 'Login successful', accessToken, refreshToken });
 
   } catch (error) {
@@ -162,7 +154,6 @@ export const refreshAccessToken = async (req, res) => {
       return res.status(403).json({ error: 'User not found.' });
     }
 
-    console.log('User found for token refresh:', user.email);
 
     // Generate a new access token
     const newAccessToken = createAccessToken(user.email, user._id);
@@ -207,7 +198,6 @@ export const getAllUsers=async(req,res)=>{
     if(!users){
       res.status(404).send("users are not found!")
     }
-    console.log(users)
     return res.status(200).json(users)
 
   }catch(error){
@@ -262,18 +252,16 @@ export const saveUserDetails = async (req, res) => {
   // Configure multer for file upload
   const storage = multer.diskStorage({
     destination: function (req, file, cb) {
-      cb(null, 'uploads/') // Make sure this directory exists
+      cb(null, 'uploads/') 
     },
     filename: function (req, file, cb) {
-      cb(null, `${Date.now()}_${req.user._id}${path.extname(file.originalname)}`) // Appending timestamp and user ID to ensure uniqueness
-    }
+      cb(null, `${Date.now()}_${req.user._id}${path.extname(file.originalname)}`)}
   });
   
   const upload = multer({ 
     storage: storage,
-    limits: { fileSize: 5 * 1024 * 1024 }, // Limit file size to 5MB
+    limits: { fileSize: 5 * 1024 * 1024 },
     fileFilter: function (req, file, cb) {
-      // Accept images only
       if (!file.originalname.match(/\.(jpg|jpeg|png|gif)$/)) {
         return cb(new Error('Only image files are allowed!'), false);
       }
@@ -284,22 +272,16 @@ export const saveUserDetails = async (req, res) => {
   export const uploadProfileImage = async (req, res) => {
     upload(req, res, function (err) {
       if (err instanceof multer.MulterError) {
-        // A Multer error occurred when uploading.
         return res.status(400).json({ error: err.message });
       } else if (err) {
-        // An unknown error occurred when uploading.
+        
         return res.status(500).json({ error: 'An error occurred while uploading the file.' });
       }
       
-      // Everything went fine.
+      
       if (!req.file) {
         return res.status(400).json({ error: 'No file uploaded.' });
       }
-  
-      // File uploaded successfully, you might want to save the file info to the user's profile in your database
-      // For example:
-      // req.user.profileImage = `/uploads/${req.file.filename}`;
-      // await req.user.save();
   
       res.status(200).json({
         message: 'File uploaded successfully',
@@ -334,7 +316,6 @@ export const saveUserDetails = async (req, res) => {
         return res.status(400).json({ message: "Search text is required!" });
       }
   
-      // Search for contacts that match the searchText, excluding the current user
       const contacts = await User.find({
         $and: [
           { _id: { $ne: req.userId } },  // Exclude the current user
@@ -358,3 +339,45 @@ export const saveUserDetails = async (req, res) => {
     }
   };
   
+
+
+ // Fetch messages between two users
+export const getMessages = async (req, res) => {
+  const { senderId, recipientId } = req.query;
+
+  if (!senderId || !recipientId) {
+    return res.status(400).json({ message: 'Missing senderId or recipientId' });
+  }
+
+  try {
+    const messages = await MessageModel.find({
+      senderId,
+      recipientId
+    });
+
+    res.json(messages);
+  } catch (error) {
+    console.error('Error fetching messages:', error);
+    res.status(500).json({ message: 'Error fetching messages' });
+  }
+};
+
+// Send a new message
+export const sendMessage = async (req, res) => {
+  const { senderId, content, recipientId, messageType, fileUrl, timestamp } = req.body;
+  try {
+    const newMessage = await MessageModel.create({
+      senderId,
+      recipientId,
+      content,
+      messageType,
+      fileUrl,
+      timestamp,
+    });
+    res.status(201).json(newMessage);
+  } catch (error) {
+    console.error('Error sending message:', error); // Log the error
+    res.status(500).json({ error: 'Error sending message' });
+  }
+};
+

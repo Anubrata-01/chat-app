@@ -97,9 +97,9 @@ const ContactsContainer = ({ onContactClick }) => {
       <div className="space-y-4 h-[60vh] overflow-y-scroll scrollbar-hide">
   <div>
     {searchContacts.length > 0
-      ? searchContacts.map((contact) => (
+      ? searchContacts.map((contact,index) => (
           <div
-            key={contact.id}
+            key={index}
             className="flex items-center space-x-1 p-2 hover:bg-[#2f3b22] rounded-md cursor-pointer transition-colors"
             onClick={() => onContactClick(contact)}
           >
@@ -135,7 +135,7 @@ const ContactsContainer = ({ onContactClick }) => {
                   contact.lastname || "Last"
                 }`}
               </h4>
-              <p className="text-xs text-gray-400 truncate">Hello</p>
+              <p className="text-xs text-gray-400 truncate"></p>
             </div>
           </div>
         ))}
