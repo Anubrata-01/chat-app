@@ -59,8 +59,9 @@ export const handleLogin = async (
 
     if (response.ok) {
       console.log("Login successful", data);
+      // setUserInfo(data);
+      navigate("/chat");
       setUserInfo(data);
-      navigate("/profile");
     } else if (response.status === 401) {
       // Token expired or invalid, try to refresh
      await refreshAccessToken(navigate, setUserInfo);

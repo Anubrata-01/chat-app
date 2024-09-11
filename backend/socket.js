@@ -12,8 +12,8 @@ const setUpSocket = (server) => {
 
   
   const userSocketMap = new Map();
-  const sendMessage = async ({ senderId, recipientId, content, messageType }) => {
-    console.log("sendMessage params:", { senderId, recipientId, content, messageType });
+  const sendMessage = async ({ senderId, recipientId, content, messageType,timestamp }) => {
+    console.log("sendMessage params:", { senderId, recipientId, content, messageType,timestamp });
 
     try {
     
@@ -21,12 +21,12 @@ const setUpSocket = (server) => {
         throw new Error("All fields (senderId, recipientId, content, messageType) are required.");
       }
 
-      await MessageModel.create({ senderId, recipientId, content, messageType });
+      await MessageModel.create({ senderId, recipientId, content, messageType,timestamp });
       const recipientSocketId = userSocketMap.get(recipientId);
       if (recipientSocketId) {
-        io.to(recipientSocketId).emit("receive_message", { senderId, content, messageType });
+        io.to(recipientSocketId).emit("receive_message", { senderId, content, messageType,timestamp });
       }
-      io.to(userSocketMap.get(senderId)).emit("receive_message", { senderId, content, messageType });
+      io.to(userSocketMap.get(senderId)).emit("receive_message", { senderId, content, messageType,timestamp });
 
       console.log("Message sent successfully");
     } catch (error) {

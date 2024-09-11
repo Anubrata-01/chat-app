@@ -17,46 +17,82 @@ export const SocketProvider = ({ children }) => {
   const socket = useRef(null);
   const [userInfo] = useAtom(userInfoAtom);
   const [chatHistory, setChatHistory] = useState({});
+  console.log(userInfo)
+
+  // useEffect(() => {
+  //   if (userInfo?.user) {
+  //     socket.current = io(HOST, {
+  //       withCredentials: true,
+  //       query: { userId: userInfo.user._id || userInfo?._id },
+  //     });
+
+  //     socket.current.on("connect", () => {
+  //       console.log("Connected to the socket server");
+  //     });
+
+  //     socket.current.on("disconnect", () => {
+  //       console.log("Disconnected from the socket server");
+  //     });
+
+  //     const handleReceiveMessage = (message) => {
+  //       console.log("Received message:", message); 
+  //       setChatHistory((prevHistory) => ({
+  //         ...prevHistory,
+  //         [message.senderId]: [...(prevHistory[message.senderId] || []), message],
+  //       }));
+  //     };
+
+  //     socket.current.on("receive_message", handleReceiveMessage);
+    
+  //     return () => {
+  //       if (socket.current) {
+  //         socket.current.off("receive_message", handleReceiveMessage);
+
+  //         socket.current.disconnect();
+  //       }
+  //     };
+  //   }
+  // }, [userInfo]);
 
   useEffect(() => {
-    if (userInfo?.user) {
-      socket.current = io(HOST, {
-        withCredentials: true,
-        query: { userId: userInfo.user._id },
-      });
-
-      socket.current.on("connect", () => {
-        console.log("Connected to the socket server");
-      });
-
-      socket.current.on("disconnect", () => {
-        console.log("Disconnected from the socket server");
-      });
-
-      const handleReceiveMessage = (message) => {
-        console.log("Received message:", message); 
-        setChatHistory((prevHistory) => ({
-          ...prevHistory,
-          [message.senderId]: [...(prevHistory[message.senderId] || []), message],
-        }));
-      };
-
-      socket.current.on("receive_message", handleReceiveMessage);
-    
-      return () => {
-        if (socket.current) {
+    if (userInfo?.user && !socket.current) {
+      const tryConnectingSocket = () => {
+        socket.current = io(HOST, {
+          withCredentials: true,
+          query: { userId: userInfo.user._id || userInfo?._id },
+        });
+  
+        socket.current.on("connect", () => {
+          console.log("Connected to the socket server");
+        });
+  
+        socket.current.on("disconnect", () => {
+          console.log("Disconnected from the socket server. Reconnecting...");
+          setTimeout(tryConnectingSocket, 3000); // Retry after 3 seconds
+        });
+  
+        const handleReceiveMessage = (message) => {
+          setChatHistory((prevHistory) => ({
+            ...prevHistory,
+            [message.senderId]: [...(prevHistory[message.senderId] || []), message],
+          }));
+        };
+  
+        socket.current.on("receive_message", handleReceiveMessage);
+  
+        return () => {
           socket.current.off("receive_message", handleReceiveMessage);
-
           socket.current.disconnect();
-        }
+        };
       };
+  
+      tryConnectingSocket();
     }
   }, [userInfo]);
-
-
+  
 
   const sendMessage = (recipientId, content) => {
-    const senderId = userInfo?.user._id;
+    const senderId = userInfo?.user._id || userInfo?._id;
     if (socket.current && senderId) {
       const timestamp = new Date().toISOString();
       const newMessage = {

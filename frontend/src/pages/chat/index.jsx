@@ -3,12 +3,15 @@ import { useState, useEffect } from 'react';
 import ContactsContainer from './contacts-container';
 import ChatContainer from './chat-container';
 import EmptyChatContainer from './emptychat-container';
+import { useAtom } from 'jotai';
+import { userInfoAtom } from '@/stores/auth-slice';
 
 export default function Chat() {
   const [isMobileView, setIsMobileView] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
   const [selectedContact, setSelectedContact] = useState(null);
-
+  const [userInfo]=useAtom(userInfoAtom)
+  console.log(userInfo)
   useEffect(() => {
     const handleResize = () => {
       setIsMobileView(window.innerWidth < 408);

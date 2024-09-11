@@ -1,7 +1,10 @@
+
 /* eslint-disable react/prop-types */
 import { useSocket } from "@/context/socketContext";
+import { senderIdAtom } from "@/stores/chat-slice";
 import { fetchUserInfo } from "@/utilities";
 import EmojiPicker from "emoji-picker-react";
+import { useAtom } from "jotai";
 import { useState } from "react";
 import { FaPaperclip, FaPaperPlane, FaSmile } from "react-icons/fa";
 import { useQuery } from "react-query";
@@ -10,11 +13,13 @@ const InputChatMessage = ({ recipientId }) => {
   const [message, setMessage] = useState("");
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const { sendMessage } = useSocket();
+  const [,setSenderId]=useAtom(senderIdAtom);
   const { data, isLoading, error } = useQuery("userInfo", fetchUserInfo);
 
   const senderId = data?.user?._id;
-
+  setSenderId(senderId)
   const handleSend = () => {
+  
     if (message.trim() && senderId) { 
       sendMessage(recipientId, message, senderId); 
       setMessage(""); 
