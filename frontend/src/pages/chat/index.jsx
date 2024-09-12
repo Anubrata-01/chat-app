@@ -25,6 +25,7 @@ export default function Chat() {
 
   const handleContactClick = (contact) => {
     setSelectedContact(contact);
+    console.log(selectedContact)
     setChatOpen(true);
   };
 

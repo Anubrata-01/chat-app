@@ -342,6 +342,27 @@ export const saveUserDetails = async (req, res) => {
 
 
  // Fetch messages between two users
+// export const getMessages = async (req, res) => {
+//   const { senderId, recipientId } = req.query;
+
+//   if (!senderId || !recipientId) {
+//     return res.status(400).json({ message: 'Missing senderId or recipientId' });
+//   }
+
+//   try {
+//     const messages = await MessageModel.find({
+//       senderId,
+//       recipientId
+//     });
+
+//    return  res.status(200).json(messages);
+//   } catch (error) {
+//     console.error('Error fetching messages:', error);
+//     res.status(500).json({ message: 'Error fetching messages' });
+//   }
+// };
+
+
 export const getMessages = async (req, res) => {
   const { senderId, recipientId } = req.query;
 
@@ -351,16 +372,21 @@ export const getMessages = async (req, res) => {
 
   try {
     const messages = await MessageModel.find({
-      senderId,
-      recipientId
-    });
+      $or: [
+        { senderId, recipientId },
+        { senderId: recipientId, recipientId: senderId },
+      ],
+    }).sort({ createdAt: 1 });
 
-    res.json(messages);
+    return res.status(200).json({ messages });
   } catch (error) {
     console.error('Error fetching messages:', error);
-    res.status(500).json({ message: 'Error fetching messages' });
+    return res.status(500).json({ message: 'Server error, please try again later' });
   }
 };
+
+
+
 
 // Send a new message
 export const sendMessage = async (req, res) => {

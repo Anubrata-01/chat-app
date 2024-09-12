@@ -1,7 +1,7 @@
 
 /* eslint-disable react/prop-types */
 import { useSocket } from "@/context/socketContext";
-import { senderIdAtom } from "@/stores/chat-slice";
+import {  senderIdAtom } from "@/stores/chat-slice";
 import { fetchUserInfo } from "@/utilities";
 import EmojiPicker from "emoji-picker-react";
 import { useAtom } from "jotai";
@@ -14,6 +14,8 @@ const InputChatMessage = ({ recipientId }) => {
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const { sendMessage } = useSocket();
   const [,setSenderId]=useAtom(senderIdAtom);
+  // const [,setNotificationMessageContainer]=useAtom(notificationMessageContainerAtom);
+
   const { data, isLoading, error } = useQuery("userInfo", fetchUserInfo);
 
   const senderId = data?.user?._id;
@@ -22,6 +24,7 @@ const InputChatMessage = ({ recipientId }) => {
   
     if (message.trim() && senderId) { 
       sendMessage(recipientId, message, senderId); 
+      // setNotificationMessageContainer(message,recipientId)
       setMessage(""); 
     } else {
       console.error("Cannot send message. Sender ID or message is missing.");

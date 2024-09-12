@@ -1,35 +1,31 @@
 /* eslint-disable no-unused-vars */
 /* eslint-disable react/prop-types */
 // import { GETUSERDATA_URL } from "@/constant";
-import { LOGOUT_URL, SEARCH_CONTACTS_URL } from "@/constant";
+/* eslint-disable react/prop-types */
+import { LOGOUT_URL } from "@/constant";
 import { userInfoAtom } from "@/stores/auth-slice";
-import {
-  fetchUserdata,
-  fetchUserInfo,
-  handleSearchContacts,
-} from "@/utilities";
 import { useAtom } from "jotai";
 import { useQuery } from "react-query";
-import { json, useNavigate } from "react-router-dom";
 import { AiOutlineLogout } from "react-icons/ai";
 import { Input } from "@/components/ui/input";
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+
+import { fetchUserdata, fetchUserInfo, handleSearchContacts } from "@/utilities";
+import { useSocket } from "@/context/socketContext";
 
 const ContactsContainer = ({ onContactClick }) => {
   const [userInfo, setUserInfo] = useAtom(userInfoAtom);
   const [searchContacts, setSearchContacts] = useState([]);
   const { data, isLoading, error } = useQuery("userInfo", fetchUserInfo);
-  const {
-    data: users,
-    isLoading: usersLoading,
-    error: usersError,
-  } = useQuery("users", fetchUserdata);
+  const { data: users, isLoading: usersLoading, error: usersError } = useQuery("users", fetchUserdata);
   const navigate = useNavigate();
-  console.log(users);
+  const { notificationMessages } = useSocket(); // Use socket context to get notifications
+
   const backendURL = "http://localhost:8747";
-  const userImagePath = data?.user?.image
-    ? `${backendURL}${data.user.image}`
-    : "/default-avatar.png";
+  const userImagePath = data?.user?.image ? `${backendURL}${data.user.image}` : "/default-avatar.png";
+
+  // Handle Logout
   const handleLogout = async () => {
     try {
       const response = await fetch(LOGOUT_URL, {
@@ -38,10 +34,8 @@ const ContactsContainer = ({ onContactClick }) => {
       });
       if (response.status === 200) {
         navigate("/auth");
-      setUserInfo(null)
+        setUserInfo(null);
       }
-      
-     
     } catch (error) {
       console.log(error);
     }
@@ -58,7 +52,7 @@ const ContactsContainer = ({ onContactClick }) => {
     };
   };
   const debouncedSearch = debounce(handleSearchContacts, 400);
-  console.log(searchContacts)
+
   if (isLoading || usersLoading) {
     return <div>Loading...</div>;
   }
@@ -69,18 +63,16 @@ const ContactsContainer = ({ onContactClick }) => {
 
   return (
     <div className="relative md:w-[25vw] lg:w-[25vw] bg-[#1b1c24] border-r-2 border-[#2f3b22] p-4">
-      <div className="text-xl font-bold text-white mb-4 pr-10 flex  justify-between">
+      <div className="text-xl font-bold text-white mb-4 pr-10 flex justify-between">
         <p>Chat</p>
-        <button
-          className=" text-lg  font-extrabold text-red-400"
-          onClick={handleLogout}
-        >
+        <button className="text-lg font-extrabold text-red-400" onClick={handleLogout}>
           <AiOutlineLogout />
         </button>
       </div>
+
+      {/* Search Contacts */}
       <div className="my-3">
         <div className="flex items-center justify-between pr-10">
-          {/* <Title text={"DIRECT MESSAGE"} /> */}
           <Input
             type="text"
             placeholder="Search Contacts"
@@ -89,60 +81,64 @@ const ContactsContainer = ({ onContactClick }) => {
           />
         </div>
       </div>
+
+      {/* Channels */}
       <div className="my-3">
         <div className="flex items-center justify-between pr-10">
           <Title text={"CHANNELS"} />
         </div>
       </div>
+
+      {/* Contacts List with Notifications */}
       <div className="space-y-4 h-[60vh] overflow-y-scroll scrollbar-hide">
-  <div>
-    {searchContacts.length > 0
-      ? searchContacts.map((contact,index) => (
-          <div
-            key={index}
-            className="flex items-center space-x-1 p-2 hover:bg-[#2f3b22] rounded-md cursor-pointer transition-colors"
-            onClick={() => onContactClick(contact)}
-          >
-            <img
-              src={`${backendURL}${contact.image}`}
-              alt={`${contact.firstname || "First"}`}
-              className="w-10 h-10 rounded-full object-cover"
-            />
-            <div className="flex-1">
-              <h4 className="text-sm font-semibold text-white">
-                {`${contact.firstname || "First"} ${
-                  contact.lastname || "Last"
-                }`}
-              </h4>
-              <p className="text-xs text-gray-400 truncate">Hello</p>
-            </div>
-          </div>
-        ))
-      : users?.map((contact) => (
-          <div
-            key={contact.id}
-            className="flex items-center space-x-1 p-2 hover:bg-[#2f3b22] rounded-md cursor-pointer transition-colors"
-            onClick={() => onContactClick(contact)}
-          >
-            <img
-              src={`${backendURL}${contact.image}`}
-              alt={`${contact.firstname || "First"}`}
-              className="w-10 h-10 rounded-full object-cover"
-            />
-            <div className="flex-1">
-              <h4 className="text-sm font-semibold text-white">
-                {`${contact.firstname || "First"} ${
-                  contact.lastname || "Last"
-                }`}
-              </h4>
-              <p className="text-xs text-gray-400 truncate"></p>
-            </div>
-          </div>
-        ))}
-  </div>
-</div>
-
-
+        <div>
+          {searchContacts.length > 0
+            ? searchContacts.map((contact, index) => (
+                <div
+                  key={index}
+                  className="flex items-center space-x-1 p-2 hover:bg-[#2f3b22] rounded-md cursor-pointer transition-colors"
+                  onClick={() => onContactClick(contact)}
+                >
+                  <img
+                    src={`${backendURL}${contact.image}`}
+                    alt={`${contact.firstname || "First"}`}
+                    className="w-10 h-10 rounded-full object-cover"
+                  />
+                  <div className="flex-1">
+                    <h4 className="text-sm font-semibold text-white">
+                      {`${contact.firstname || "First"} ${contact.lastname || "Last"}`}
+                    </h4>
+                    <p className="text-xs text-gray-400 truncate">
+                      hello
+                    </p>
+                  </div>
+                  
+                </div>
+              ))
+            : users?.map((contact) => (
+                <div
+                  key={contact.id}
+                  className="flex items-center space-x-1 p-2 hover:bg-[#2f3b22] rounded-md cursor-pointer transition-colors"
+                  onClick={() => onContactClick(contact)}
+                >
+                  <img
+                    src={`${backendURL}${contact.image}`}
+                    alt={`${contact.firstname || "First"}`}
+                    className="w-10 h-10 rounded-full object-cover"
+                  />
+                  <div className="flex-1">
+                    <h4 className="text-sm font-semibold text-white">
+                      {`${contact.firstname || "First"} ${contact.lastname || "Last"}`}
+                    </h4>
+                    <p className="text-xs text-gray-400 truncate">
+                      hello
+                    </p>
+                  </div>
+                
+                </div>
+              ))}
+        </div>
+      </div>
 
       {/* User Info Section */}
       <div className="mt-6 flex items-center space-x-3">
@@ -153,9 +149,7 @@ const ContactsContainer = ({ onContactClick }) => {
         />
         <div className="text-white">
           <span className="block text-sm font-semibold">
-            {`${data?.user?.firstname || "First"} ${
-              data?.user?.lastname || "Last"
-            }`}
+            {`${data?.user?.firstname || "First"} ${data?.user?.lastname || "Last"}`}
           </span>
           <span className="block text-xs text-gray-400">
             {data?.user?.email || "Email not available"}
@@ -166,6 +160,7 @@ const ContactsContainer = ({ onContactClick }) => {
   );
 };
 
+// Title Component
 const Title = ({ text }) => {
   return (
     <h6 className="uppercase tracking-widest text-neutral-400 pl-10 font-light text-opacity-90 text-sm">
@@ -175,3 +170,4 @@ const Title = ({ text }) => {
 };
 
 export default ContactsContainer;
+

@@ -1,5 +1,9 @@
+
 /* eslint-disable react-refresh/only-export-components */
 /* eslint-disable react/prop-types */
+
+// 
+
 
 import { HOST } from "@/constant";
 import { userInfoAtom } from "@/stores/auth-slice";
@@ -118,11 +122,10 @@ export const SocketProvider = ({ children }) => {
     }
   };
   
-  
   return (
-    <SocketContext.Provider value={{ socket: socket.current, sendMessage, chatHistory }}>
+    <SocketContext.Provider value={{ socket: socket.current, sendMessage, chatHistory,setChatHistory }}>
       {children}
     </SocketContext.Provider>
   );
 };
-
+export default SocketProvider
